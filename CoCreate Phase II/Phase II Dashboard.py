@@ -154,7 +154,7 @@ if not df.empty:
                             labels=country_channel_data['渠道'],
                             values=country_channel_data['数量'],
                             textinfo='percent+label',
-                            hole=0.3)])
+                            hole=0.3
                         )])
                         fig_country_channel.update_layout(title_text=f"{country_name} 渠道分布")
                         st.plotly_chart(fig_country_channel, use_container_width=True)
