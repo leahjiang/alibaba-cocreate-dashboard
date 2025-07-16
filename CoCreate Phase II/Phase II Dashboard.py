@@ -91,6 +91,14 @@ if not df.empty:
         with col1:
             channel_counts = df['渠道'].value_counts().reset_index()
             channel_counts.columns = ['渠道', '数量']
+
+            # --- DEBUGGING INFORMATION ---
+            st.write("Debug: channel_counts DataFrame:")
+            st.dataframe(channel_counts)
+            st.write("Debug: channel_counts dtypes:")
+            st.write(channel_counts.dtypes)
+            # --- END DEBUGGING INFORMATION ---
+
             if not channel_counts.empty: # Add check for empty dataframe
                 # 3. Add Channel name above pie chart
                 fig_channel = px.pie(channel_counts, names='渠道', values='数量', title="整体渠道分布", textinfo='percent+label')
