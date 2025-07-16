@@ -16,7 +16,7 @@ st.set_page_config(page_title="COCREATE Pitch Phase II 数据看板", layout="wi
 def load_data():
     """Load the CSV file from the specified path."""
     try:
-        df = pd.read_csv("Update-PitchData-Phase2.csv")
+        df = pd.read_csv("CoCreate Phase II/Update-PitchData-Phase2.csv")
         return df
     except FileNotFoundError:
         st.error("无法找到 'Update-PitchData-Phase2.csv' 文件。请确保文件与脚本在同一目录下。")
