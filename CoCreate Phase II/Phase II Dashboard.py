@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -9,18 +8,22 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
 import nltk
-from urllib.error import URLError
+import ssl # Import ssl module
+
+# Bypass SSL certificate verification for NLTK downloads if necessary (common issue on some systems)
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
 
 # Ensure NLTK stopwords are downloaded
 try:
     nltk.data.find('corpora/stopwords')
-except nltk.downloader.DownloadError:
+except LookupError:
     nltk.download('stopwords')
 
-try:
-    nltk.download('punkt')
-except URLError as e:
-    print("资源下载失败，请检查网络连接：", e)
 # Page settings
 st.set_page_config(page_title="COCREATE Pitch Phase II 数据看板", layout="wide")
 
@@ -28,8 +31,10 @@ st.set_page_config(page_title="COCREATE Pitch Phase II 数据看板", layout="wi
 @st.cache_data
 def load_data():
     """Load the CSV file and perform necessary data cleaning/normalization."""
+    # UPDATED FILE PATH AND NAME
+    file_path = "CoCreate Phase II/Update-PitchData-Phase2.csv"
     try:
-        df = pd.read_csv("CoCreate Phase II/Update-PitchData-Phase2.csv")
+        df = pd.read_csv(file_path)
 
         # --- Data Cleaning and Normalization ---
 
@@ -52,7 +57,7 @@ def load_data():
 
         return df
     except FileNotFoundError:
-        st.error("无法找到 '0714-Pitch Source- Phase2.csv' 文件。请确保文件与脚本在同一目录下。")
+        st.error(f"无法找到 '{file_path}' 文件。请确保文件路径与脚本所在目录结构匹配。")
         return pd.DataFrame() # Return empty DataFrame on error
 
 df = load_data()
@@ -283,7 +288,7 @@ if not df.empty:
         if text_content:
             text_combined = " ".join(text_content)
             
-            # 8. Fix stopwords error: Use nltk.corpus.stopwords
+            # Use nltk.corpus.stopwords
             stop_words = set(nltk.corpus.stopwords.words('english'))
             
             # Simple tokenization and filter out short words and stop words
@@ -375,4 +380,4 @@ if not df.empty:
     st.markdown("---")
 
 else:
-    st.info("数据加载失败，请检查 '0714-Pitch Source- Phase2.csv' 文件是否存在且路径正确。")
+    st.info("数据加载失败，请检查文件路径与文件名是否正确，例如：`CoCreate Phase II/Update-PitchData-Phase2.csv`。")
