@@ -91,21 +91,31 @@ if not df.empty:
         with col1:
             channel_counts = df['渠道'].value_counts().reset_index()
             channel_counts.columns = ['渠道', '数量']
-            # 3. Add Channel name above pie chart
-            fig_channel = px.pie(channel_counts, names='渠道', values='数量', title="整体渠道分布", textinfo='percent+label')
-            st.plotly_chart(fig_channel, use_container_width=True)
+            if not channel_counts.empty: # Add check for empty dataframe
+                # 3. Add Channel name above pie chart
+                fig_channel = px.pie(channel_counts, names='渠道', values='数量', title="整体渠道分布", textinfo='percent+label')
+                st.plotly_chart(fig_channel, use_container_width=True)
+            else:
+                st.info("没有可用的渠道数据进行分析。")
 
         with col2:
-            selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", df['渠道'].dropna().unique(), key='channel_select')
-            filtered_df_source = df[df['渠道'] == selected_channel]
-            if 'SOURCE' in df.columns:
-                source_counts = filtered_df_source['SOURCE'].value_counts().reset_index()
-                source_counts.columns = ['SOURCE', '数量']
-                # 3. Add Source name above pie chart
-                fig_source = px.pie(source_counts, names='SOURCE', values='数量', title=f"{selected_channel} 渠道下的 SOURCE 分布", textinfo='percent+label')
-                st.plotly_chart(fig_source, use_container_width=True)
+            unique_channels = df['渠道'].dropna().unique()
+            if unique_channels.size > 0:
+                selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", unique_channels, key='channel_select')
+                filtered_df_source = df[df['渠道'] == selected_channel]
+                if 'SOURCE' in df.columns:
+                    source_counts = filtered_df_source['SOURCE'].value_counts().reset_index()
+                    source_counts.columns = ['SOURCE', '数量']
+                    if not source_counts.empty: # Add check for empty dataframe
+                        # 3. Add Source name above pie chart
+                        fig_source = px.pie(source_counts, names='SOURCE', values='数量', title=f"{selected_channel} 渠道下的 SOURCE 分布", textinfo='percent+label')
+                        st.plotly_chart(fig_source, use_container_width=True)
+                    else:
+                        st.info(f"没有 {selected_channel} 渠道下的 SOURCE 数据。")
+                else:
+                    st.warning(f"缺少字段：'SOURCE'，无法显示 {selected_channel} 渠道下的 SOURCE 分布。")
             else:
-                st.warning(f"缺少字段：'SOURCE'，无法显示 {selected_channel} 渠道下的 SOURCE 分布。")
+                st.info("没有可用的渠道供选择。")
     else:
         st.warning("缺少字段：'渠道'，无法显示渠道来源分析。")
 
@@ -120,10 +130,14 @@ if not df.empty:
         # 4. "参赛公司 Top 10 国家分布" 换成柱状图
         country_counts = df['country'].value_counts().reset_index()
         country_counts.columns = ['国家', '数量']
-        fig_country_bar = px.bar(country_counts.head(10), x='国家', y='数量', title="参赛公司 Top 10 国家分布",
-                                 color='数量', color_continuous_scale=px.colors.sequential.Viridis)
-        fig_country_bar.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
-        st.plotly_chart(fig_country_bar, use_container_width=True)
+        if not country_counts.empty: # Add check for empty dataframe
+            fig_country_bar = px.bar(country_counts.head(10), x='国家', y='数量', title="参赛公司 Top 10 国家分布",
+                                     color='数量', color_continuous_scale=px.colors.sequential.Viridis)
+            fig_country_bar.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
+            st.plotly_chart(fig_country_bar, use_container_width=True)
+        else:
+            st.info("没有可用的国家数据进行分析。")
+
 
         st.subheader("重点国家分析：美国、英国、德国、法国、意大利的数量与渠道")
         key_countries = ['United States', 'United Kingdom', 'Germany', 'France', 'Italy']
@@ -136,7 +150,10 @@ if not df.empty:
         st.markdown("##### 重点国家报名数量:")
         key_country_counts = key_country_df['country'].value_counts().reset_index()
         key_country_counts.columns = ['国家', '报名数量']
-        st.dataframe(key_country_counts.set_index('国家'))
+        if not key_country_counts.empty: # Add check for empty dataframe
+            st.dataframe(key_country_counts.set_index('国家'))
+        else:
+            st.info("没有重点国家报名数量数据。")
         st.write("---")
 
         # Display channel distribution for each key country
@@ -174,9 +191,12 @@ if not df.empty:
         if industry_col in df.columns:
             industry_counts = df[industry_col].value_counts().reset_index()
             industry_counts.columns = ['行业', '数量']
-            fig_industry = px.bar(industry_counts.head(10), x='数量', y='行业', orientation='h', title="Top 10 行业分布")
-            fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
-            st.plotly_chart(fig_industry, use_container_width=True)
+            if not industry_counts.empty: # Add check for empty dataframe
+                fig_industry = px.bar(industry_counts.head(10), x='数量', y='行业', orientation='h', title="Top 10 行业分布")
+                fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
+                st.plotly_chart(fig_industry, use_container_width=True)
+            else:
+                st.info(f"缺少字段：'{industry_col}' 的数据。")
         else:
             st.warning(f"缺少字段：'{industry_col}'，无法显示行业分析。")
 
@@ -185,9 +205,12 @@ if not df.empty:
         if stage_col in df.columns:
             stage_counts = df[stage_col].value_counts().reset_index()
             stage_counts.columns = ['发展阶段', '数量']
-            fig_stage = px.bar(stage_counts, x='发展阶段', y='数量', title="公司发展阶段分布")
-            fig_stage.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
-            st.plotly_chart(fig_stage, use_container_width=True)
+            if not stage_counts.empty: # Add check for empty dataframe
+                fig_stage = px.bar(stage_counts, x='发展阶段', y='数量', title="公司发展阶段分布")
+                fig_stage.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
+                st.plotly_chart(fig_stage, use_container_width=True)
+            else:
+                st.info(f"缺少字段：'{stage_col}' 的数据。")
         else:
             st.warning(f"缺少字段：'{stage_col}'，无法显示发展阶段分析。")
 
@@ -205,9 +228,12 @@ if not df.empty:
         if company_type_col in df.columns: # 6. Handle missing 'My company is a' field
             company_type_counts = df[company_type_col].value_counts().reset_index()
             company_type_counts.columns = ['公司类型', '数量']
-            fig_company_type = px.pie(company_type_counts, names='公司类型', values='数量',
-                                      title="公司类型分布", hole=0.3, textinfo='percent+label')
-            st.plotly_chart(fig_company_type, use_container_width=True)
+            if not company_type_counts.empty: # Add check for empty dataframe
+                fig_company_type = px.pie(company_type_counts, names='公司类型', values='数量',
+                                          title="公司类型分布", hole=0.3, textinfo='percent+label')
+                st.plotly_chart(fig_company_type, use_container_width=True)
+            else:
+                st.info(f"缺少字段：'{company_type_col}' 的数据。")
         else:
             st.warning(f"缺少字段：'{company_type_col}'，无法显示公司类型分析。")
 
@@ -229,9 +255,12 @@ if not df.empty:
         
         if product_data:
             product_df = pd.DataFrame(list(product_data.items()), columns=['产品类型', '数量'])
-            fig_product_type = px.bar(product_df, x='数量', y='产品类型', orientation='h', title="产品类型统计")
-            fig_product_type.update_layout(yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_product_type, use_container_width=True)
+            if not product_df.empty: # Add check for empty dataframe
+                fig_product_type = px.bar(product_df, x='数量', y='产品类型', orientation='h', title="产品类型统计")
+                fig_product_type.update_layout(yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_product_type, use_container_width=True)
+            else:
+                st.info("没有可用的产品类型数据。")
         else:
             st.warning("缺少产品类型相关字段，无法显示产品类型分析。")
 
@@ -246,9 +275,12 @@ if not df.empty:
     if alibaba_account_col in df.columns:
         alibaba_account_counts = df[alibaba_account_col].value_counts().reset_index()
         alibaba_account_counts.columns = ['是否有 Alibaba.com 账号', '数量']
-        fig_alibaba = px.pie(alibaba_account_counts, names='是否有 Alibaba.com 账号', values='数量',
-                             title="是否有 Alibaba.com 账号", hole=0.3, textinfo='percent+label')
-        st.plotly_chart(fig_alibaba, use_container_width=True)
+        if not alibaba_account_counts.empty: # Add check for empty dataframe
+            fig_alibaba = px.pie(alibaba_account_counts, names='是否有 Alibaba.com 账号', values='数量',
+                                 title="是否有 Alibaba.com 账号", hole=0.3, textinfo='percent+label')
+            st.plotly_chart(fig_alibaba, use_container_width=True)
+        else:
+            st.info(f"缺少字段：'{alibaba_account_col}' 的数据。")
     else:
         st.warning(f"缺少字段：'{alibaba_account_col}'，无法显示 Alibaba.com 账号分析。")
 
