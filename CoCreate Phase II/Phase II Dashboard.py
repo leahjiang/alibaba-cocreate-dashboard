@@ -89,7 +89,8 @@ if not df.empty:
     
     if '渠道' in df.columns:
         with col1:
-            channel_counts = df['渠道'].value_counts().reset_index()
+            # Drop NA values before value_counts to ensure only valid channels are counted
+            channel_counts = df['渠道'].dropna().value_counts().reset_index()
             channel_counts.columns = ['渠道', '数量']
 
             # --- DEBUGGING INFORMATION ---
@@ -99,12 +100,13 @@ if not df.empty:
             st.write(channel_counts.dtypes)
             # --- END DEBUGGING INFORMATION ---
 
-            if not channel_counts.empty: # Add check for empty dataframe
+            # Check if channel_counts has data and the required columns for plotting
+            if not channel_counts.empty and '渠道' in channel_counts.columns and '数量' in channel_counts.columns:
                 # 3. Add Channel name above pie chart
                 fig_channel = px.pie(channel_counts, names='渠道', values='数量', title="整体渠道分布", textinfo='percent+label')
                 st.plotly_chart(fig_channel, use_container_width=True)
             else:
-                st.info("没有可用的渠道数据进行分析。")
+                st.info("没有可用的渠道数据进行分析。请检查 CSV 文件中的 '渠道' 列是否有数据。")
 
         with col2:
             unique_channels = df['渠道'].dropna().unique()
@@ -112,9 +114,9 @@ if not df.empty:
                 selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", unique_channels, key='channel_select')
                 filtered_df_source = df[df['渠道'] == selected_channel]
                 if 'SOURCE' in df.columns:
-                    source_counts = filtered_df_source['SOURCE'].value_counts().reset_index()
+                    source_counts = filtered_df_source['SOURCE'].dropna().value_counts().reset_index() # Dropna here too
                     source_counts.columns = ['SOURCE', '数量']
-                    if not source_counts.empty: # Add check for empty dataframe
+                    if not source_counts.empty and 'SOURCE' in source_counts.columns and '数量' in source_counts.columns: # Robust check
                         # 3. Add Source name above pie chart
                         fig_source = px.pie(source_counts, names='SOURCE', values='数量', title=f"{selected_channel} 渠道下的 SOURCE 分布", textinfo='percent+label')
                         st.plotly_chart(fig_source, use_container_width=True)
@@ -136,9 +138,9 @@ if not df.empty:
 
     if 'country' in df.columns:
         # 4. "参赛公司 Top 10 国家分布" 换成柱状图
-        country_counts = df['country'].value_counts().reset_index()
+        country_counts = df['country'].dropna().value_counts().reset_index() # Dropna
         country_counts.columns = ['国家', '数量']
-        if not country_counts.empty: # Add check for empty dataframe
+        if not country_counts.empty and '国家' in country_counts.columns and '数量' in country_counts.columns: # Robust check
             fig_country_bar = px.bar(country_counts.head(10), x='国家', y='数量', title="参赛公司 Top 10 国家分布",
                                      color='数量', color_continuous_scale=px.colors.sequential.Viridis)
             fig_country_bar.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
@@ -156,7 +158,7 @@ if not df.empty:
         # Display counts for key countries
         st.write("---")
         st.markdown("##### 重点国家报名数量:")
-        key_country_counts = key_country_df['country'].value_counts().reset_index()
+        key_country_counts = key_country_df['country'].dropna().value_counts().reset_index() # Dropna
         key_country_counts.columns = ['国家', '报名数量']
         if not key_country_counts.empty: # Add check for empty dataframe
             st.dataframe(key_country_counts.set_index('国家'))
@@ -172,7 +174,7 @@ if not df.empty:
             cols_key_countries = st.columns(len(available_key_countries))
             for i, country_name in enumerate(available_key_countries):
                 with cols_key_countries[i]:
-                    country_channel_data = key_country_df[key_country_df['country'] == country_name]['渠道'].value_counts().reset_index()
+                    country_channel_data = key_country_df[key_country_df['country'] == country_name]['渠道'].dropna().value_counts().reset_index() # Dropna
                     country_channel_data.columns = ['渠道', '数量']
                     if not country_channel_data.empty:
                         fig_country_channel = px.pie(country_channel_data, names='渠道', values='数量',
@@ -197,9 +199,9 @@ if not df.empty:
     with col1:
         industry_col = 'Which of the following industries best describes your company?'
         if industry_col in df.columns:
-            industry_counts = df[industry_col].value_counts().reset_index()
+            industry_counts = df[industry_col].dropna().value_counts().reset_index() # Dropna
             industry_counts.columns = ['行业', '数量']
-            if not industry_counts.empty: # Add check for empty dataframe
+            if not industry_counts.empty and '行业' in industry_counts.columns and '数量' in industry_counts.columns: # Robust check
                 fig_industry = px.bar(industry_counts.head(10), x='数量', y='行业', orientation='h', title="Top 10 行业分布")
                 fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
                 st.plotly_chart(fig_industry, use_container_width=True)
@@ -211,9 +213,9 @@ if not df.empty:
     with col2:
         stage_col = 'What stage is your company currently in?'
         if stage_col in df.columns:
-            stage_counts = df[stage_col].value_counts().reset_index()
+            stage_counts = df[stage_col].dropna().value_counts().reset_index() # Dropna
             stage_counts.columns = ['发展阶段', '数量']
-            if not stage_counts.empty: # Add check for empty dataframe
+            if not stage_counts.empty and '发展阶段' in stage_counts.columns and '数量' in stage_counts.columns: # Robust check
                 fig_stage = px.bar(stage_counts, x='发展阶段', y='数量', title="公司发展阶段分布")
                 fig_stage.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
                 st.plotly_chart(fig_stage, use_container_width=True)
@@ -234,9 +236,9 @@ if not df.empty:
     with col1:
         company_type_col = 'My company is a'
         if company_type_col in df.columns: # 6. Handle missing 'My company is a' field
-            company_type_counts = df[company_type_col].value_counts().reset_index()
+            company_type_counts = df[company_type_col].dropna().value_counts().reset_index() # Dropna
             company_type_counts.columns = ['公司类型', '数量']
-            if not company_type_counts.empty: # Add check for empty dataframe
+            if not company_type_counts.empty and '公司类型' in company_type_counts.columns and '数量' in company_type_counts.columns: # Robust check
                 fig_company_type = px.pie(company_type_counts, names='公司类型', values='数量',
                                           title="公司类型分布", hole=0.3, textinfo='percent+label')
                 st.plotly_chart(fig_company_type, use_container_width=True)
@@ -259,7 +261,8 @@ if not df.empty:
         for display_name, original_col_name in product_types_cols.items():
             if original_col_name in df.columns:
                 # Assuming 'Yes' or boolean True indicates selection
-                product_data[display_name] = df[original_col_name].apply(lambda x: str(x).lower() == 'yes' or x == True).sum()
+                # Use .sum() on boolean series after dropping NA
+                product_data[display_name] = df[original_col_name].dropna().apply(lambda x: str(x).lower() == 'yes' or x == True).sum()
         
         if product_data:
             product_df = pd.DataFrame(list(product_data.items()), columns=['产品类型', '数量'])
@@ -281,9 +284,9 @@ if not df.empty:
     
     alibaba_account_col = 'Alibaba Account Status' # Using the normalized column
     if alibaba_account_col in df.columns:
-        alibaba_account_counts = df[alibaba_account_col].value_counts().reset_index()
+        alibaba_account_counts = df[alibaba_account_col].dropna().value_counts().reset_index() # Dropna
         alibaba_account_counts.columns = ['是否有 Alibaba.com 账号', '数量']
-        if not alibaba_account_counts.empty: # Add check for empty dataframe
+        if not alibaba_account_counts.empty and '是否有 Alibaba.com 账号' in alibaba_account_counts.columns and '数量' in alibaba_account_counts.columns: # Robust check
             fig_alibaba = px.pie(alibaba_account_counts, names='是否有 Alibaba.com 账号', values='数量',
                                  title="是否有 Alibaba.com 账号", hole=0.3, textinfo='percent+label')
             st.plotly_chart(fig_alibaba, use_container_width=True)
