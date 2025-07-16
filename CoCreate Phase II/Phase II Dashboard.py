@@ -8,7 +8,7 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
 import nltk
-import ssl # Import ssl module
+import ssl  # Import ssl module
 
 # Bypass SSL certificate verification for NLTK downloads if necessary (common issue on some systems)
 try:
@@ -44,7 +44,7 @@ def load_data():
                 lambda x: 'complete' if pd.notna(x) and str(x).lower() in ['complete', 'completed'] else 'partial'
             )
         else:
-            df['Response Type Cleaned'] = 'unknown' # Fallback if column is missing or handled as default partial
+            df['Response Type Cleaned'] = 'unknown'  # Fallback if column is missing or handled as default partial
 
         # 7. "是否有 Alibaba.com 账号" - Normalization
         alibaba_col = 'Do you have an Alibaba.com account?'
@@ -53,12 +53,12 @@ def load_data():
                 lambda x: 'Yes' if pd.notna(x) and str(x).lower() not in ['no', 'n', 'na', 'n/a', 'n/a.', 'not sure', 'none'] else 'No'
             )
         else:
-            df['Alibaba Account Status'] = 'Unknown' # Fallback
+            df['Alibaba Account Status'] = 'Unknown'  # Fallback
 
         return df
     except FileNotFoundError:
         st.error(f"无法找到 '{file_path}' 文件。请确保文件路径与脚本所在目录结构匹配。")
-        return pd.DataFrame() # Return empty DataFrame on error
+        return pd.DataFrame()  # Return empty DataFrame on error
 
 df = load_data()
 
@@ -93,6 +93,7 @@ if not df.empty:
             labels=channel_counts['渠道'],
             values=channel_counts['数量'],
             textinfo='label+percent',
+            insidetextorientation='radial',
             hole=0.3
         )])
         fig_channel.update_layout(title_text="整体渠道分布")
@@ -103,9 +104,6 @@ if not df.empty:
         filtered_df_source = df[df['渠道'] == selected_channel]
         source_counts = filtered_df_source['SOURCE'].value_counts().reset_index()
         source_counts.columns = ['SOURCE', '数量']
-        fig_source = px.pie(source_counts, names='SOURCE', values='数量', title=f"{selected_channel} 渠道下的 SOURCE 分布")
-        st.plotly_chart(fig_source, use_container_width=True)
-
         if source_counts['数量'].sum() == 0:
             st.info(f"{selected_channel} 渠道下无有效的 SOURCE 数据。")
         else:
@@ -113,31 +111,46 @@ if not df.empty:
                 labels=source_counts['SOURCE'],
                 values=source_counts['数量'],
                 textinfo='label+percent',
+                insidetextorientation='radial',
                 hole=0.3
             )])
             fig_source.update_layout(title_text=f"{selected_channel} 渠道下的 SOURCE 分布")
             st.plotly_chart(fig_source, use_container_width=True)
             
-            st.markdown("---")
+    st.markdown("---")
 
     # ----------------------------
-
     # 3. 地理分布分析
     # ----------------------------
     st.header("🌍 国家分布分析")
 
     if 'country' in df.columns:
         # 4. "参赛公司 Top 10 国家分布" 柱状图
-        country_counts = df['country'].dropna().value_counts().reset_index() # Dropna
+        country_counts = df['country'].dropna().value_counts().reset_index()  # Dropna
         country_counts.columns = ['国家', '数量']
-        if not country_counts.empty and '国家' in country_counts.columns and '数量' in country_counts.columns: # Robust check
+        if not country_counts.empty and '国家' in country_counts.columns and '数量' in country_counts.columns:
             fig_country_bar = px.bar(country_counts.head(10), x='国家', y='数量', title="参赛公司 Top 10 国家分布",
-                                     color='数量', color_continuous_scale=px.colors.sequential.Viridis)
-            fig_country_bar.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
+                                      color='数量', color_continuous_scale=px.colors.sequential.Viridis)
+            fig_country_bar.update_layout(xaxis_title=None, yaxis_title=None)
+            # 添加参考线：计算前10国家数量的平均值
+            avg_value = country_counts.head(10)['数量'].mean()
+            fig_country_bar.add_shape(
+                type="line",
+                x0=avg_value, x1=avg_value,
+                y0=-0.5, y1=9.5,
+                line=dict(color="red", dash="dash")
+            )
+            fig_country_bar.add_annotation(
+                x=avg_value,
+                y=9.5,
+                text=f"平均值: {avg_value:.1f}",
+                showarrow=False,
+                font=dict(color="red"),
+                xanchor="left"
+            )
             st.plotly_chart(fig_country_bar, use_container_width=True)
         else:
             st.info("没有可用的国家数据进行分析。")
-
 
         st.subheader("重点国家分析：美国、英国、德国、法国、意大利的数量与渠道")
         key_countries = ['United States', 'United Kingdom', 'Germany', 'France', 'Italy']
@@ -145,40 +158,31 @@ if not df.empty:
         # Filter for key countries and their channel distribution
         key_country_df = df[df['country'].isin(key_countries)]
         
-        # Display counts for key countries
+        # Display counts for key countries with most common channel
         st.write("---")
         st.markdown("##### 重点国家报名数量:")
-
-        # 计算每个国家的报名数量和最常见渠道
         key_country_summary = key_country_df.groupby('country').agg(
             报名数量=('country', 'count'),
             最主要渠道=('渠道', lambda x: x.value_counts().idxmax() if not x.empty else '无')
         ).reset_index().rename(columns={'country': '国家'})
-        
         st.dataframe(key_country_summary.set_index('国家'))
         
-        if not key_country_counts.empty: # Add check for empty dataframe
-            st.dataframe(key_country_counts.set_index('国家'))
-        else:
-            st.info("没有重点国家报名数量数据。")
         st.write("---")
-
         # Display channel distribution for each key country
         st.markdown("##### 重点国家渠道分布:")
-        # Adjust column count based on available key countries with data
         available_key_countries = [c for c in key_countries if c in key_country_df['country'].unique()]
         if available_key_countries and '渠道' in df.columns:
             cols_key_countries = st.columns(len(available_key_countries))
             for i, country_name in enumerate(available_key_countries):
                 with cols_key_countries[i]:
-                    country_channel_data = key_country_df[key_country_df['country'] == country_name]['渠道'].dropna().value_counts().reset_index() # Dropna
+                    country_channel_data = key_country_df[key_country_df['country'] == country_name]['渠道'].dropna().value_counts().reset_index()
                     country_channel_data.columns = ['渠道', '数量']
                     if not country_channel_data.empty:
-                        import plotly.graph_objects as go
                         fig_country_channel = go.Figure(data=[go.Pie(
                             labels=country_channel_data['渠道'],
                             values=country_channel_data['数量'],
                             textinfo='percent+label',
+                            insidetextorientation='radial',
                             hole=0.3
                         )])
                         fig_country_channel.update_layout(title_text=f"{country_name} 渠道分布")
@@ -202,11 +206,29 @@ if not df.empty:
     with col1:
         industry_col = 'Which of the following industries best describes your company?'
         if industry_col in df.columns:
-            industry_counts = df[industry_col].dropna().value_counts().reset_index() # Dropna
+            industry_counts = df[industry_col].dropna().value_counts().reset_index()  # Dropna
             industry_counts.columns = ['行业', '数量']
-            if not industry_counts.empty and '行业' in industry_counts.columns and '数量' in industry_counts.columns: # Robust check
+            if not industry_counts.empty:
                 fig_industry = px.bar(industry_counts.head(10), x='数量', y='行业', orientation='h', title="Top 10 行业分布")
-                fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
+                fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None)
+                # 添加参考线：计算前10行业数量的平均值
+                avg_value_industry = industry_counts.head(10)['数量'].mean()
+                fig_industry.add_shape(
+                    type="line",
+                    x0=avg_value_industry,
+                    x1=avg_value_industry,
+                    y0=-0.5,
+                    y1=9.5,
+                    line=dict(color="red", dash="dash")
+                )
+                fig_industry.add_annotation(
+                    x=avg_value_industry,
+                    y=9.5,
+                    text=f"平均值: {avg_value_industry:.1f}",
+                    showarrow=False,
+                    font=dict(color="red"),
+                    xanchor="left"
+                )
                 st.plotly_chart(fig_industry, use_container_width=True)
             else:
                 st.info(f"缺少字段：'{industry_col}' 的数据。")
@@ -216,11 +238,11 @@ if not df.empty:
     with col2:
         stage_col = 'What stage is your company currently in?'
         if stage_col in df.columns:
-            stage_counts = df[stage_col].dropna().value_counts().reset_index() # Dropna
+            stage_counts = df[stage_col].dropna().value_counts().reset_index()  # Dropna
             stage_counts.columns = ['发展阶段', '数量']
-            if not stage_counts.empty and '发展阶段' in stage_counts.columns and '数量' in stage_counts.columns: # Robust check
+            if not stage_counts.empty:
                 fig_stage = px.bar(stage_counts, x='发展阶段', y='数量', title="公司发展阶段分布")
-                fig_stage.update_layout(xaxis_title=None, yaxis_title=None) # 5. Remove axis labels
+                fig_stage.update_layout(xaxis_title=None, yaxis_title=None)
                 st.plotly_chart(fig_stage, use_container_width=True)
             else:
                 st.info(f"缺少字段：'{stage_col}' 的数据。")
@@ -238,10 +260,10 @@ if not df.empty:
 
     with col1:
         company_type_col = 'My company is a:'
-        if company_type_col in df.columns: # 6. Handle missing 'My company is a' field
-            company_type_counts = df[company_type_col].dropna().value_counts().reset_index() # Dropna
+        if company_type_col in df.columns:
+            company_type_counts = df[company_type_col].dropna().value_counts().reset_index()  # Dropna
             company_type_counts.columns = ['公司类型', '数量']
-            if not company_type_counts.empty and '公司类型' in company_type_counts.columns and '数量' in company_type_counts.columns: # Robust check
+            if not company_type_counts.empty:
                 fig_company_type = px.pie(company_type_counts, names='公司类型', values='数量',
                                           title="公司类型分布", hole=0.3, textinfo='percent+label')
                 st.plotly_chart(fig_company_type, use_container_width=True)
@@ -264,12 +286,11 @@ if not df.empty:
         for display_name, original_col_name in product_types_cols.items():
             if original_col_name in df.columns:
                 # Assuming 'Yes' or boolean True indicates selection
-                # Use .sum() on boolean series after dropping NA
                 product_data[display_name] = df[original_col_name].dropna().apply(lambda x: str(x).lower() == 'yes' or x == True).sum()
         
         if product_data:
             product_df = pd.DataFrame(list(product_data.items()), columns=['产品类型', '数量'])
-            if not product_df.empty: # Add check for empty dataframe
+            if not product_df.empty:
                 fig_product_type = px.bar(product_df, x='数量', y='产品类型', orientation='h', title="产品类型统计")
                 fig_product_type.update_layout(yaxis={'categoryorder':'total ascending'})
                 st.plotly_chart(fig_product_type, use_container_width=True)
@@ -285,11 +306,11 @@ if not df.empty:
     # ----------------------------
     st.header("🤝 平台账号与用户反馈")
     
-    alibaba_account_col = 'Alibaba Account Status' # Using the normalized column
+    alibaba_account_col = 'Alibaba Account Status'
     if alibaba_account_col in df.columns:
-        alibaba_account_counts = df[alibaba_account_col].dropna().value_counts().reset_index() # Dropna
+        alibaba_account_counts = df[alibaba_account_col].dropna().value_counts().reset_index()
         alibaba_account_counts.columns = ['是否有 Alibaba.com 账号', '数量']
-        if not alibaba_account_counts.empty and '是否有 Alibaba.com 账号' in alibaba_account_counts.columns and '数量' in alibaba_account_counts.columns: # Robust check
+        if not alibaba_account_counts.empty:
             fig_alibaba = px.pie(alibaba_account_counts, names='是否有 Alibaba.com 账号', values='数量',
                                  title="是否有 Alibaba.com 账号", hole=0.3, textinfo='percent+label')
             st.plotly_chart(fig_alibaba, use_container_width=True)
@@ -323,7 +344,6 @@ if not df.empty:
         "What specific market problem does your company aim to solve?": "解决的问题"
     }
 
-    # Filter out fields that are not in the DataFrame
     available_text_fields = {k: v for k, v in text_fields.items() if k in df.columns}
 
     if available_text_fields:
@@ -333,18 +353,12 @@ if not df.empty:
         text_content = df[selected_text_field_name].dropna().astype(str).tolist()
         if text_content:
             text_combined = " ".join(text_content)
-            
-            # Use nltk.corpus.stopwords
             stop_words = set(nltk.corpus.stopwords.words('english'))
-            
-            # Simple tokenization and filter out short words and stop words
             words = re.findall(r'\b\w+\b', text_combined.lower())
             filtered_words = [word for word in words if word not in stop_words and len(word) > 2]
             
             if filtered_words:
                 word_freq = Counter(filtered_words)
-                # WordCloud default font might not support all characters, especially CJK.
-                # For English, it's usually fine. If CJK support is needed, specify font_path.
                 wc = WordCloud(width=800, height=400, background_color="white", collocations=False).generate_from_frequencies(word_freq)
                 
                 fig, ax = plt.subplots(figsize=(10, 5))
@@ -375,7 +389,6 @@ if not df.empty:
 
     col_filters = st.columns(4)
 
-    # Filter options, dynamically check for column existence
     selected_country = []
     selected_channel_filter = []
     selected_response_type = []
@@ -398,8 +411,6 @@ if not df.empty:
             st.warning(f"缺少字段：'{capital_col}'，无法提供融资筛选。")
 
     filtered_df = df.copy()
-
-    # Apply filters if selected and columns exist
     if selected_country:
         filtered_df = filtered_df[filtered_df['country'].isin(selected_country)]
     if selected_channel_filter:
