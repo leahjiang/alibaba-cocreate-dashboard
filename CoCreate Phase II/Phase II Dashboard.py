@@ -255,23 +255,28 @@ if not df.empty:
     # 5. 公司类型与产品分析
     # ----------------------------
     st.header("💼 公司类型与产品类型分析")
-
+    
     col1, col2 = st.columns(2)
-
+    
     with col1:
         company_type_col = 'My company is a:'
         if company_type_col in df.columns:
-            company_type_counts = df[company_type_col].dropna().value_counts().reset_index()  # Dropna
+            company_type_counts = df[company_type_col].dropna().value_counts().reset_index()
             company_type_counts.columns = ['公司类型', '数量']
             if not company_type_counts.empty:
-                fig_company_type = px.pie(company_type_counts, names='公司类型', values='数量',
-                                          title="公司类型分布", hole=0.3, textinfo='percent+label')
+                fig_company_type = go.Figure(data=[go.Pie(
+                    labels=company_type_counts['公司类型'],
+                    values=company_type_counts['数量'],
+                    textinfo='percent+label',
+                    hole=0.3
+                )])
+                fig_company_type.update_layout(title_text="公司类型分布")
                 st.plotly_chart(fig_company_type, use_container_width=True)
             else:
-                st.info(f"缺少字段：'{company_type_col}' 的数据。")
+                st.info(f"字段 '{company_type_col}' 没有有效数据。")
         else:
             st.warning(f"缺少字段：'{company_type_col}'，无法显示公司类型分析。")
-
+    
     with col2:
         st.subheader("产品类型统计")
         product_types_cols = {
@@ -281,24 +286,35 @@ if not df.empty:
             'Digital Service': 'Digital Services - Online platforms, marketplaces, or service delivery',
             'Professional Service': 'Professional Services - Consulting, advisory, or traditional services'
         }
-        
+    
         product_data = {}
         for display_name, original_col_name in product_types_cols.items():
             if original_col_name in df.columns:
-                # Assuming 'Yes' or boolean True indicates selection
-                product_data[display_name] = df[original_col_name].dropna().apply(lambda x: str(x).lower() == 'yes' or x == True).sum()
-        
+                product_data[display_name] = df[original_col_name].dropna().apply(
+                    lambda x: str(x).lower() == 'yes' or x is True
+                ).sum()
+    
         if product_data:
             product_df = pd.DataFrame(list(product_data.items()), columns=['产品类型', '数量'])
             if not product_df.empty:
-                fig_product_type = px.bar(product_df, x='数量', y='产品类型', orientation='h', title="产品类型统计")
-                fig_product_type.update_layout(yaxis={'categoryorder':'total ascending'})
+                fig_product_type = px.bar(
+                    product_df,
+                    x='数量',
+                    y='产品类型',
+                    orientation='h',
+                    title="产品类型统计"
+                )
+                fig_product_type.update_layout(
+                    yaxis={'categoryorder': 'total ascending'},
+                    xaxis_title=None,
+                    yaxis_title=None
+                )
                 st.plotly_chart(fig_product_type, use_container_width=True)
             else:
                 st.info("没有可用的产品类型数据。")
         else:
             st.warning("缺少产品类型相关字段，无法显示产品类型分析。")
-
+    
     st.markdown("---")
 
     # ----------------------------
@@ -311,26 +327,32 @@ if not df.empty:
         alibaba_account_counts = df[alibaba_account_col].dropna().value_counts().reset_index()
         alibaba_account_counts.columns = ['是否有 Alibaba.com 账号', '数量']
         if not alibaba_account_counts.empty:
-            fig_alibaba = px.pie(alibaba_account_counts, names='是否有 Alibaba.com 账号', values='数量',
-                                 title="是否有 Alibaba.com 账号", hole=0.3, textinfo='percent+label')
+            fig_alibaba = go.Figure(data=[go.Pie(
+                labels=alibaba_account_counts['是否有 Alibaba.com 账号'],
+                values=alibaba_account_counts['数量'],
+                textinfo='percent+label',
+                hole=0.3
+            )])
+            fig_alibaba.update_layout(title_text="是否有 Alibaba.com 账号")
             st.plotly_chart(fig_alibaba, use_container_width=True)
         else:
-            st.info(f"缺少字段：'{alibaba_account_col}' 的数据。")
+            st.info(f"字段 '{alibaba_account_col}' 没有有效数据。")
     else:
         st.warning(f"缺少字段：'{alibaba_account_col}'，无法显示 Alibaba.com 账号分析。")
-
+    
     feedback_content_col = 'Do you have any feedback for Alibaba.com?'
     if feedback_content_col in df.columns:
         st.subheader("部分用户反馈内容")
-        sample_feedback_df = df[feedback_content_col].dropna().sample(min(5, len(df[feedback_content_col].dropna()))).tolist()
-        if sample_feedback_df:
-            for i, fb in enumerate(sample_feedback_df):
+        sample_feedback_df = df[feedback_content_col].dropna()
+        if not sample_feedback_df.empty:
+            samples = sample_feedback_df.sample(min(5, len(sample_feedback_df))).tolist()
+            for i, fb in enumerate(samples):
                 st.write(f"- {fb}")
         else:
             st.info("暂无用户反馈内容。")
     else:
         st.warning(f"缺少字段：'{feedback_content_col}'，无法显示用户反馈内容。")
-
+    
     st.markdown("---")
 
     # ----------------------------
