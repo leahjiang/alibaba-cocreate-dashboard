@@ -5,7 +5,7 @@ import plotly.express as px
 # 读取CSV数据
 @st.cache_data
 def load_data():
-    df = pd.read_csv("Update-Pitch Source-Phase1.csv")
+    df = pd.read_csv("Update-PitchData-Phase1.csv")
     df = df.rename(columns={
         'Country where {{field:4b95525c-36f9-47c2-b2e9-50b3e64a92cb}} is based:': 'Country',
         '渠道分类': 'Channel',
