@@ -149,8 +149,14 @@ if not df.empty:
                     country_channel_data = key_country_df[key_country_df['country'] == country_name]['渠道'].dropna().value_counts().reset_index() # Dropna
                     country_channel_data.columns = ['渠道', '数量']
                     if not country_channel_data.empty:
-                        fig_country_channel = px.pie(country_channel_data, names='渠道', values='数量',
-                                                     title=f"{country_name} 渠道分布", textinfo='percent+label')
+                        import plotly.graph_objects as go
+                        fig_country_channel = go.Figure(data=[go.Pie(
+                            labels=country_channel_data['渠道'],
+                            values=country_channel_data['数量'],
+                            textinfo='percent+label',
+                            hole=0.3)])
+                        )])
+                        fig_country_channel.update_layout(title_text=f"{country_name} 渠道分布")
                         st.plotly_chart(fig_country_channel, use_container_width=True)
                     else:
                         st.info(f"没有 {country_name} 的渠道数据。")
