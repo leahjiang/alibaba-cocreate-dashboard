@@ -132,22 +132,7 @@ if not df.empty:
             fig_country_bar = px.bar(country_counts.head(10), x='国家', y='数量', title="参赛公司 Top 10 国家分布",
                                       color='数量', color_continuous_scale=px.colors.sequential.Viridis)
             fig_country_bar.update_layout(xaxis_title=None, yaxis_title=None)
-            # 添加参考线：计算前10国家数量的平均值
-            avg_value = country_counts.head(10)['数量'].mean()
-            fig_country_bar.add_shape(
-                type="line",
-                x0=avg_value, x1=avg_value,
-                y0=-0.5, y1=9.5,
-                line=dict(color="red", dash="dash")
-            )
-            fig_country_bar.add_annotation(
-                x=avg_value,
-                y=9.5,
-                text=f"平均值: {avg_value:.1f}",
-                showarrow=False,
-                font=dict(color="red"),
-                xanchor="left"
-            )
+           
             st.plotly_chart(fig_country_bar, use_container_width=True)
         else:
             st.info("没有可用的国家数据进行分析。")
@@ -161,11 +146,26 @@ if not df.empty:
         # Display counts for key countries with most common channel
         st.write("---")
         st.markdown("##### 重点国家报名数量:")
+        
+        # 替换“0”为“无”，并设置列居中
         key_country_summary = key_country_df.groupby('country').agg(
             报名数量=('country', 'count'),
             最主要渠道=('渠道', lambda x: x.value_counts().idxmax() if not x.empty else '无')
         ).reset_index().rename(columns={'country': '国家'})
-        st.dataframe(key_country_summary.set_index('国家'))
+        
+        # 替换 0 为 “无”
+        key_country_summary['报名数量'] = key_country_summary['报名数量'].replace(0, '无')
+        
+        # 设置表格显示格式：所有列居中
+        def center_all_cols(df):
+            return df.style.set_properties(**{
+                'text-align': 'center'
+            }).set_table_styles([{
+                'selector': 'th',
+                'props': [('text-align', 'center')]
+            }])
+        
+        st.dataframe(center_all_cols(key_country_summary.set_index('国家')))
         
         st.write("---")
         # Display channel distribution for each key country
