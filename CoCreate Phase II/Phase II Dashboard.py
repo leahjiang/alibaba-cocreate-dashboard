@@ -86,52 +86,24 @@ if not df.empty:
     st.header("📣 渠道来源分析")
 
     col1, col2 = st.columns([1, 1.2])
-    
-    if '渠道' in df.columns:
-        with col1:
-            # Drop NA values before value_counts to ensure only valid channels are counted
-            channel_counts = df['渠道'].dropna().value_counts().reset_index()
-            channel_counts.columns = ['渠道', '数量']
+    with col1:
+        channel_counts = df['渠道'].value_counts().reset_index()
+        channel_counts.columns = ['渠道', '数量']
+        fig_channel = px.pie(channel_counts, names='渠道', values='数量', title="整体渠道分布")
+        st.plotly_chart(fig_channel, use_container_width=True)
 
-            # --- DEBUGGING INFORMATION ---
-            st.write("Debug: channel_counts DataFrame:")
-            st.dataframe(channel_counts)
-            st.write("Debug: channel_counts dtypes:")
-            st.write(channel_counts.dtypes)
-            # --- END DEBUGGING INFORMATION ---
-
-            # Check if channel_counts has data and the required columns for plotting
-            if not channel_counts.empty and '渠道' in channel_counts.columns and '数量' in channel_counts.columns:
-                # 3. Add Channel name above pie chart
-                fig_channel = px.pie(channel_counts, names='渠道', values='数量', title="整体渠道分布", textinfo='percent+label')
-                st.plotly_chart(fig_channel, use_container_width=True)
-            else:
-                st.info("没有可用的渠道数据进行分析。请检查 CSV 文件中的 '渠道' 列是否有数据。")
-
-        with col2:
-            unique_channels = df['渠道'].dropna().unique()
-            if unique_channels.size > 0:
-                selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", unique_channels, key='channel_select')
-                filtered_df_source = df[df['渠道'] == selected_channel]
-                if 'SOURCE' in df.columns:
-                    source_counts = filtered_df_source['SOURCE'].dropna().value_counts().reset_index() # Dropna here too
-                    source_counts.columns = ['SOURCE', '数量']
-                    if not source_counts.empty and 'SOURCE' in source_counts.columns and '数量' in source_counts.columns: # Robust check
-                        # 3. Add Source name above pie chart
-                        fig_source = px.pie(source_counts, names='SOURCE', values='数量', title=f"{selected_channel} 渠道下的 SOURCE 分布", textinfo='percent+label')
-                        st.plotly_chart(fig_source, use_container_width=True)
-                    else:
-                        st.info(f"没有 {selected_channel} 渠道下的 SOURCE 数据。")
-                else:
-                    st.warning(f"缺少字段：'SOURCE'，无法显示 {selected_channel} 渠道下的 SOURCE 分布。")
-            else:
-                st.info("没有可用的渠道供选择。")
-    else:
-        st.warning("缺少字段：'渠道'，无法显示渠道来源分析。")
+    with col2:
+        selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", df['渠道'].dropna().unique(), key='channel_select')
+        filtered_df_source = df[df['渠道'] == selected_channel]
+        source_counts = filtered_df_source['SOURCE'].value_counts().reset_index()
+        source_counts.columns = ['SOURCE', '数量']
+        fig_source = px.pie(source_counts, names='SOURCE', values='数量', title=f"{selected_channel} 渠道下的 SOURCE 分布")
+        st.plotly_chart(fig_source, use_container_width=True)
 
     st.markdown("---")
 
     # ----------------------------
+
     # 3. 地理分布分析
     # ----------------------------
     st.header("🌍 国家分布分析")
