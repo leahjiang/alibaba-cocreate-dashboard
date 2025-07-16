@@ -89,9 +89,15 @@ if not df.empty:
     with col1:
         channel_counts = df['渠道'].value_counts().reset_index()
         channel_counts.columns = ['渠道', '数量']
-        fig_channel = px.pie(channel_counts, names='渠道', values='数量', title="整体渠道分布")
+        fig_channel = go.Figure(data=[go.Pie(
+            labels=channel_counts['渠道'],
+            values=channel_counts['数量'],
+            textinfo='label+percent',
+            hole=0.3
+        )])
+        fig_channel.update_layout(title_text="整体渠道分布")
         st.plotly_chart(fig_channel, use_container_width=True)
-
+        
     with col2:
         selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", df['渠道'].dropna().unique(), key='channel_select')
         filtered_df_source = df[df['渠道'] == selected_channel]
@@ -100,7 +106,19 @@ if not df.empty:
         fig_source = px.pie(source_counts, names='SOURCE', values='数量', title=f"{selected_channel} 渠道下的 SOURCE 分布")
         st.plotly_chart(fig_source, use_container_width=True)
 
-    st.markdown("---")
+        if source_counts['数量'].sum() == 0:
+            st.info(f"{selected_channel} 渠道下无有效的 SOURCE 数据。")
+        else:
+            fig_source = go.Figure(data=[go.Pie(
+                labels=source_counts['SOURCE'],
+                values=source_counts['数量'],
+                textinfo='label+percent',
+                hole=0.3
+            )])
+            fig_source.update_layout(title_text=f"{selected_channel} 渠道下的 SOURCE 分布")
+            st.plotly_chart(fig_source, use_container_width=True)
+            
+            st.markdown("---")
 
     # ----------------------------
 
@@ -109,7 +127,7 @@ if not df.empty:
     st.header("🌍 国家分布分析")
 
     if 'country' in df.columns:
-        # 4. "参赛公司 Top 10 国家分布" 换成柱状图
+        # 4. "参赛公司 Top 10 国家分布" 柱状图
         country_counts = df['country'].dropna().value_counts().reset_index() # Dropna
         country_counts.columns = ['国家', '数量']
         if not country_counts.empty and '国家' in country_counts.columns and '数量' in country_counts.columns: # Robust check
@@ -130,8 +148,15 @@ if not df.empty:
         # Display counts for key countries
         st.write("---")
         st.markdown("##### 重点国家报名数量:")
-        key_country_counts = key_country_df['country'].dropna().value_counts().reset_index() # Dropna
-        key_country_counts.columns = ['国家', '报名数量']
+
+        # 计算每个国家的报名数量和最常见渠道
+        key_country_summary = key_country_df.groupby('country').agg(
+            报名数量=('country', 'count'),
+            最主要渠道=('渠道', lambda x: x.value_counts().idxmax() if not x.empty else '无')
+        ).reset_index().rename(columns={'country': '国家'})
+        
+        st.dataframe(key_country_summary.set_index('国家'))
+        
         if not key_country_counts.empty: # Add check for empty dataframe
             st.dataframe(key_country_counts.set_index('国家'))
         else:
@@ -212,7 +237,7 @@ if not df.empty:
     col1, col2 = st.columns(2)
 
     with col1:
-        company_type_col = 'My company is a'
+        company_type_col = 'My company is a:'
         if company_type_col in df.columns: # 6. Handle missing 'My company is a' field
             company_type_counts = df[company_type_col].dropna().value_counts().reset_index() # Dropna
             company_type_counts.columns = ['公司类型', '数量']
