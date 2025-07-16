@@ -9,6 +9,7 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import io
 import nltk
+from urllib.error import URLError
 
 # Ensure NLTK stopwords are downloaded
 try:
@@ -16,6 +17,10 @@ try:
 except nltk.downloader.DownloadError:
     nltk.download('stopwords')
 
+try:
+    nltk.download('punkt')
+except URLError as e:
+    print("资源下载失败，请检查网络连接：", e)
 # Page settings
 st.set_page_config(page_title="COCREATE Pitch Phase II 数据看板", layout="wide")
 
