@@ -36,7 +36,7 @@ def load_data():
     try:
         df = pd.read_csv(file_path)
 
-        # --- Data Cleaning and Normalization ---
+        # --- Data Cleaning and Normalization --- 数据清洗 ---
 
         # 2. Corrected "Complete" count: "partial" is partial, "complete" or "completed" are complete.
         if 'Response Type' in df.columns:
@@ -82,7 +82,7 @@ if not df.empty:
     # ----------------------------
     # 1. 项目数据总览
     # ----------------------------
-    st.header("📊 项目数据总览")
+    st.header("一、CoCreate Pitch 报名数据总览")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("📌 总报名数", len(df))
     # Using the cleaned response type column
@@ -95,7 +95,7 @@ if not df.empty:
     # ----------------------------
     # 2. 渠道来源分析
     # ----------------------------
-    st.header("📣 渠道来源分析")
+    st.header("二、渠道来源分析")
 
     col1, col2 = st.columns([1, 1.2])
 
@@ -158,10 +158,10 @@ if not df.empty:
     # ----------------------------
     # 3. 地理分布分析
     # ----------------------------
-    st.header("🌍 国家分布分析")
+    st.header("三、国家分布分析")
 
     if 'country' in df.columns:
-        # 4. "参赛公司 Top 10 国家分布" 柱状图
+        # 4. "参赛公司国家分布" 柱状图
         country_counts = df['country'].dropna().value_counts().reset_index()
         country_counts.columns = ['国家', '数量']
         if not country_counts.empty and '国家' in country_counts.columns and '数量' in country_counts.columns:
@@ -171,7 +171,7 @@ if not df.empty:
                 marker_color=country_counts.head(10)['数量'], # Color by count
                 marker_colorscale=px.colors.sequential.Viridis # Use px's color scale
             )])
-            fig_country_bar.update_layout(title_text="参赛公司 Top 10 国家分布", xaxis_title=None, yaxis_title=None)
+            fig_country_bar.update_layout(title_text="报名参赛公司 Top 10 国家分布", xaxis_title=None, yaxis_title=None)
             st.plotly_chart(fig_country_bar, use_container_width=True)
         else:
             st.info("没有可用的国家数据进行分析。")
@@ -236,7 +236,7 @@ if not df.empty:
     # ----------------------------
     # 4. 行业分析 (保持独立，因为它与公司运营状况是平行分析)
     # ----------------------------
-    st.header("🏢 行业分析") # Subheader for industry
+    st.header("四、行业分析") # Subheader for industry
     
     industry_col = 'Which of the following industries best describes your company?'
     if industry_col in df.columns:
@@ -249,7 +249,7 @@ if not df.empty:
                 orientation='h',
                 marker_color=industry_counts['数量']
             )])
-            fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None, title_text="Top 10 行业分布")
+            fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None, title_text="报名公司行业分布")
             
             # Add average line and annotation for top 10 industries
             if len(industry_counts) > 0:
@@ -285,7 +285,7 @@ if not df.empty:
     # ----------------------------
     # 5. 公司运营状况分析 (包含公司类型、发展阶段、营收、团队规模)
     # ----------------------------
-    st.header("🏢 公司运营状况分析")
+    st.header("五、公司运营状况分析")
 
     # Row 1: Company Type and Development Stage
     col1_row1_op, col2_row1_op = st.columns(2)
@@ -311,7 +311,7 @@ if not df.empty:
             st.warning(f"缺少字段：'{company_type_col}'，无法显示公司类型分析。")
 
     with col2_row1_op:
-        st.subheader("📈 发展阶段分析：企业当前所处的发展阶段")
+        st.subheader("发展阶段分析：企业当前所处的发展阶段")
         if '公司发展阶段' in df.columns:
             stage_counts_pie = df['公司发展阶段'].dropna().value_counts().reset_index()
             stage_counts_pie.columns = ['发展阶段', '数量']
@@ -335,7 +335,7 @@ if not df.empty:
     col1_row2_op, col2_row2_op = st.columns(2)
 
     with col1_row2_op:
-        st.subheader("💰 营收状况分析：企业年度营收情况分布")
+        st.subheader("营收状况分析：企业年度营收情况分布")
         if '公司营收' in df.columns:
             revenue_counts = df['公司营收'].dropna().value_counts().reset_index()
             revenue_counts.columns = ['营收区间', '数量']
@@ -355,7 +355,7 @@ if not df.empty:
             st.warning("缺少字段：'公司营收'。")
             
     with col2_row2_op:
-        st.subheader("👥 团队规模分析：企业团队规模分布情况")
+        st.subheader("团队规模分析：企业团队规模分布情况")
         if '团队规模' in df.columns:
             team_counts = df['团队规模'].dropna().value_counts().reset_index()
             team_counts.columns = ['团队规模', '数量']
@@ -379,7 +379,7 @@ if not df.empty:
     # ----------------------------
     # 6. 平台账号与用户反馈
     # ----------------------------
-    st.header("🤝 平台账号与用户反馈")
+    st.header("六、平台账号与用户反馈")
     
     alibaba_account_col = 'Alibaba Account Status'
     if alibaba_account_col in df.columns:
@@ -399,73 +399,14 @@ if not df.empty:
     else:
         st.warning(f"缺少字段：'{alibaba_account_col}'，无法显示 Alibaba.com 账号分析。")
     
-    feedback_content_col = 'Do you have any feedback for Alibaba.com?'
-    if feedback_content_col in df.columns:
-        st.subheader("部分用户反馈内容")
-        sample_feedback_df = df[feedback_content_col].dropna()
-        if not sample_feedback_df.empty:
-            samples = sample_feedback_df.sample(min(5, len(sample_feedback_df))).tolist()
-            for i, fb in enumerate(samples):
-                st.write(f"- {fb}")
-        else:
-            st.info("暂无用户反馈内容。")
-    else:
-        st.warning(f"缺少字段：'{feedback_content_col}'，无法显示用户反馈内容。")
     
     st.markdown("---")
 
-    # ----------------------------
-    # 7. 创业故事与产品方案分析 (关键词云)
-    # ----------------------------
-    st.header("💡 创业故事与产品方案分析 (关键词云)")
-
-    text_fields = {
-        "Describe your solution and explain your key competitive advantages compared to existing alternatives": "产品方案",
-        "Describe your business story that you’d like to share with us": "商业故事",
-        "What specific market problem does your company aim to solve?": "解决的问题"
-    }
-
-    available_text_fields = {k: v for k, v in text_fields.items() if k in df.columns}
-
-    if available_text_fields:
-        selected_text_field_name = st.selectbox("选择文本字段以生成关键词云：", list(available_text_fields.keys()), key='text_field_select')
-        selected_label = available_text_fields.get(selected_text_field_name, "关键词")
-        
-        text_content = df[selected_text_field_name].dropna().astype(str).tolist()
-        if text_content:
-            text_combined = " ".join(text_content)
-            stop_words = set(nltk.corpus.stopwords.words('english'))
-            words = re.findall(r'\b\w+\b', text_combined.lower())
-            filtered_words = [word for word in words if word not in stop_words and len(word) > 2]
-            
-            if filtered_words:
-                word_freq = Counter(filtered_words)
-                wc = WordCloud(width=800, height=400, background_color="white", collocations=False).generate_from_frequencies(word_freq)
-                
-                fig, ax = plt.subplots(figsize=(10, 5))
-                ax.imshow(wc, interpolation='bilinear')
-                ax.axis("off")
-                ax.set_title(f"{selected_label} 关键词云")
-                st.pyplot(fig)
-                
-                st.subheader(f"'{selected_label}' 文本样本")
-                sample_texts = df[selected_text_field_name].dropna().sample(min(3, len(df[selected_text_field_name].dropna()))).tolist()
-                for i, text in enumerate(sample_texts):
-                    st.write(f"**样本 {i+1}:**")
-                    st.write(text)
-            else:
-                st.info(f"选定字段 '{selected_label}' 没有足够的文本内容生成关键词云。")
-        else:
-            st.info(f"选定字段 '{selected_label}' 没有可用的文本内容。")
-    else:
-        st.warning("数据中不包含任何可用于关键词云分析的文本字段。")
-
-    st.markdown("---")
 
     # ----------------------------
-    # 8. 数据筛选 + 表格导出
+    # 7. 数据筛选 + 表格导出
     # ----------------------------
-    st.header("🔍 数据筛选与导出")
+    st.header("七、数据筛选与导出")
     st.markdown("使用以下筛选器查看特定数据，并可将筛选后的数据导出为 CSV。")
 
     col_filters = st.columns(4)
