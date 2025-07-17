@@ -68,7 +68,7 @@ if not df.empty:
         'What stage is your company currently in?': '公司发展阶段',
         "What is your company's current annual revenue?": '公司营收',
         'How many employees/contractors are currently working at your company?': '团队规模',
-        'My company is a:': '公司类型'
+        'My company is a:': '公司类型',
         'If selected as a finalist, which event would you prefer to attend and compete in?': '决赛地点偏好'
     })
 
