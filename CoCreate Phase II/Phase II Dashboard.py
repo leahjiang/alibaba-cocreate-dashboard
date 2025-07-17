@@ -62,14 +62,14 @@ def load_data():
 
 df = load_data()
 
-# Global column renaming for consistent use in the dashboard
+# Global column renaming for consistent use in the dashboard 字段定义
 if not df.empty:
     df = df.rename(columns={
         'What stage is your company currently in?': '公司发展阶段',
         "What is your company's current annual revenue?": '公司营收',
         'How many employees/contractors are currently working at your company?': '团队规模',
-        # Assuming 'My company is a:' is the correct column name without a colon
         'My company is a:': '公司类型'
+        'If selected as a finalist, which event would you prefer to attend and compete in?': '决赛地点偏好'
     })
 
 
@@ -406,7 +406,7 @@ if not df.empty:
     
     with col_feedback_2:
         st.subheader("决赛地点偏好 (Las Vegas vs. London)") # New subheader
-        event_preference_col = '决赛地点偏好' # Using the globally renamed column
+        event_preference_col = '决赛地点偏好' 
         if event_preference_col in df.columns:
             # Filter for only "Las Vegas" and "London" and drop NA values
             event_preference_counts = df[df[event_preference_col].isin(['Las Vegas', 'London'])][event_preference_col].dropna().value_counts().reset_index()
@@ -418,12 +418,12 @@ if not df.empty:
                     textinfo='percent+label',
                     hole=0.3
                 )])
-                fig_event_preference.update_layout(title_text="决赛活动地点偏好")
+                fig_event_preference.update_layout(title_text="决赛地点偏好")
                 st.plotly_chart(fig_event_preference, use_container_width=True)
             else:
                 st.info(f"字段 '{event_preference_col}' 没有 Las Vegas 或 London 的有效数据。")
         else:
-            st.warning(f"缺少字段：'{event_preference_col}'，无法显示决赛活动偏好分析。")
+            st.warning(f"缺少字段：'{event_preference_col}'，无法显示决赛地点偏好分析。")
 
     # The existing feedback content section remains below the two new pie charts
     feedback_content_col = 'Do you have any feedback for Alibaba.com?'
