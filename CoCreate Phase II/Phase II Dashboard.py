@@ -381,24 +381,63 @@ if not df.empty:
     # ----------------------------
     st.header("六、平台账号与用户反馈")
     
-    alibaba_account_col = 'Alibaba Account Status'
-    if alibaba_account_col in df.columns:
-        alibaba_account_counts = df[alibaba_account_col].dropna().value_counts().reset_index()
-        alibaba_account_counts.columns = ['是否有 Alibaba.com 账号', '数量']
-        if not alibaba_account_counts.empty:
-            fig_alibaba = go.Figure(data=[go.Pie(
-                labels=alibaba_account_counts['是否有 Alibaba.com 账号'],
-                values=alibaba_account_counts['数量'],
-                textinfo='percent+label',
-                hole=0.3
-            )])
-            fig_alibaba.update_layout(title_text="是否有 Alibaba.com 账号")
-            st.plotly_chart(fig_alibaba, use_container_width=True)
+    # Create two columns for the pie charts
+    col_feedback_1, col_feedback_2 = st.columns(2)
+
+    with col_feedback_1:
+        st.subheader("是否有 Alibaba.com 账号") # Keep subheader for consistency
+        alibaba_account_col = 'Alibaba Account Status'
+        if alibaba_account_col in df.columns:
+            alibaba_account_counts = df[alibaba_account_col].dropna().value_counts().reset_index()
+            alibaba_account_counts.columns = ['是否有 Alibaba.com 账号', '数量']
+            if not alibaba_account_counts.empty:
+                fig_alibaba = go.Figure(data=[go.Pie(
+                    labels=alibaba_account_counts['是否有 Alibaba.com 账号'],
+                    values=alibaba_account_counts['数量'],
+                    textinfo='percent+label',
+                    hole=0.3
+                )])
+                fig_alibaba.update_layout(title_text="是否有 Alibaba.com 账号")
+                st.plotly_chart(fig_alibaba, use_container_width=True)
+            else:
+                st.info(f"字段 '{alibaba_account_col}' 没有有效数据。")
         else:
-            st.info(f"字段 '{alibaba_account_col}' 没有有效数据。")
-    else:
-        st.warning(f"缺少字段：'{alibaba_account_col}'，无法显示 Alibaba.com 账号分析。")
+            st.warning(f"缺少字段：'{alibaba_account_col}'，无法显示 Alibaba.com 账号分析。")
     
+    with col_feedback_2:
+        st.subheader("决赛地点偏好 (Las Vegas vs. London)") # New subheader
+        event_preference_col = '决赛地点偏好' # Using the globally renamed column
+        if event_preference_col in df.columns:
+            # Filter for only "Las Vegas" and "London" and drop NA values
+            event_preference_counts = df[df[event_preference_col].isin(['Las Vegas', 'London'])][event_preference_col].dropna().value_counts().reset_index()
+            event_preference_counts.columns = ['活动地点', '数量']
+            if not event_preference_counts.empty:
+                fig_event_preference = go.Figure(data=[go.Pie(
+                    labels=event_preference_counts['活动地点'],
+                    values=event_preference_counts['数量'],
+                    textinfo='percent+label',
+                    hole=0.3
+                )])
+                fig_event_preference.update_layout(title_text="决赛活动地点偏好")
+                st.plotly_chart(fig_event_preference, use_container_width=True)
+            else:
+                st.info(f"字段 '{event_preference_col}' 没有 Las Vegas 或 London 的有效数据。")
+        else:
+            st.warning(f"缺少字段：'{event_preference_col}'，无法显示决赛活动偏好分析。")
+
+    # The existing feedback content section remains below the two new pie charts
+    feedback_content_col = 'Do you have any feedback for Alibaba.com?'
+    if feedback_content_col in df.columns:
+        st.subheader("部分用户反馈内容")
+        sample_feedback_df = df[feedback_content_col].dropna()
+        if not sample_feedback_df.empty:
+            samples = sample_feedback_df.sample(min(5, len(sample_feedback_df))).tolist()
+            for i, fb in enumerate(samples):
+                st.write(f"- {fb}")
+        else:
+            st.info("暂无用户反馈内容。")
+    else:
+        st.warning(f"缺少字段：'{feedback_content_col}'，无法显示用户反馈内容。")
     
     st.markdown("---")
 
