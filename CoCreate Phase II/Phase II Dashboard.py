@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import plotly.express as px # Still import for color scales if needed, but charts will use go
 import plotly.graph_objects as go
 from collections import Counter
 import re
@@ -62,6 +62,17 @@ def load_data():
 
 df = load_data()
 
+# Global column renaming for consistent use in the dashboard
+if not df.empty:
+    df = df.rename(columns={
+        'What stage is your company currently in?': '公司发展阶段',
+        "What is your company's current annual revenue?": '公司营收',
+        'How many employees/contractors are currently working at your company?': '团队规模',
+        # Assuming 'My company is a:' is the correct column name without a colon
+        'My company is a:': '公司类型'
+    })
+
+
 # Check if data was loaded successfully
 if not df.empty:
     # 1. Dynamic "2685" count in title
@@ -71,6 +82,7 @@ if not df.empty:
     # ----------------------------
     # 1. 项目数据总览
     # ----------------------------
+    st.header("📊 项目数据总览")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("📌 总报名数", len(df))
     # Using the cleaned response type column
@@ -86,37 +98,61 @@ if not df.empty:
     st.header("📣 渠道来源分析")
 
     col1, col2 = st.columns([1, 1.2])
-    with col1:
-        channel_counts = df['渠道'].value_counts().reset_index()
-        channel_counts.columns = ['渠道', '数量']
-        fig_channel = go.Figure(data=[go.Pie(
-            labels=channel_counts['渠道'],
-            values=channel_counts['数量'],
-            textinfo='label+percent',
-            insidetextorientation='radial',
-            hole=0.3
-        )])
-        fig_channel.update_layout(title_text="整体渠道分布")
-        st.plotly_chart(fig_channel, use_container_width=True)
-        
-    with col2:
-        selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", df['渠道'].dropna().unique(), key='channel_select')
-        filtered_df_source = df[df['渠道'] == selected_channel]
-        source_counts = filtered_df_source['SOURCE'].value_counts().reset_index()
-        source_counts.columns = ['SOURCE', '数量']
-        if source_counts['数量'].sum() == 0:
-            st.info(f"{selected_channel} 渠道下无有效的 SOURCE 数据。")
-        else:
-            fig_source = go.Figure(data=[go.Pie(
-                labels=source_counts['SOURCE'],
-                values=source_counts['数量'],
-                textinfo='label+percent',
-                insidetextorientation='radial',
-                hole=0.3
-            )])
-            fig_source.update_layout(title_text=f"{selected_channel} 渠道下的 SOURCE 分布")
-            st.plotly_chart(fig_source, use_container_width=True)
-            
+
+    if '渠道' in df.columns:
+        with col1:
+            # Drop NA values before value_counts to ensure only valid channels are counted
+            channel_counts = df['渠道'].dropna().value_counts().reset_index()
+            channel_counts.columns = ['渠道', '数量']
+
+            # --- DEBUGGING INFORMATION (Keep for now if issues persist) ---
+            # st.write("Debug: channel_counts DataFrame:")
+            # st.dataframe(channel_counts)
+            # st.write("Debug: channel_counts dtypes:")
+            # st.write(channel_counts.dtypes)
+            # --- END DEBUGGING INFORMATION ---
+
+            # Check if channel_counts has data and the required columns for plotting
+            if not channel_counts.empty and '渠道' in channel_counts.columns and '数量' in channel_counts.columns:
+                fig_channel = go.Figure(data=[go.Pie(
+                    labels=channel_counts['渠道'],
+                    values=channel_counts['数量'],
+                    textinfo='label+percent',
+                    insidetextorientation='radial',
+                    hole=0.3
+                )])
+                fig_channel.update_layout(title_text="整体渠道分布")
+                st.plotly_chart(fig_channel, use_container_width=True)
+            else:
+                st.info("没有可用的渠道数据进行分析。请检查 CSV 文件中的 '渠道' 列是否有数据。")
+
+        with col2:
+            unique_channels = df['渠道'].dropna().unique()
+            if unique_channels.size > 0:
+                selected_channel = st.selectbox("选择一个渠道以查看其下 SOURCE 分布：", unique_channels, key='channel_select')
+                filtered_df_source = df[df['渠道'] == selected_channel]
+                if 'SOURCE' in df.columns:
+                    source_counts = filtered_df_source['SOURCE'].dropna().value_counts().reset_index()
+                    source_counts.columns = ['SOURCE', '数量']
+                    if not source_counts.empty and 'SOURCE' in source_counts.columns and '数量' in source_counts.columns:
+                        fig_source = go.Figure(data=[go.Pie(
+                            labels=source_counts['SOURCE'],
+                            values=source_counts['数量'],
+                            textinfo='label+percent',
+                            insidetextorientation='radial',
+                            hole=0.3
+                        )])
+                        fig_source.update_layout(title_text=f"{selected_channel} 渠道下的 SOURCE 分布")
+                        st.plotly_chart(fig_source, use_container_width=True)
+                    else:
+                        st.info(f"没有 {selected_channel} 渠道下的 SOURCE 数据。")
+                else:
+                    st.warning(f"缺少字段：'SOURCE'，无法显示 {selected_channel} 渠道下的 SOURCE 分布。")
+            else:
+                st.info("没有可用的渠道供选择。")
+    else:
+        st.warning("缺少字段：'渠道'，无法显示渠道来源分析。")
+
     st.markdown("---")
 
     # ----------------------------
@@ -126,16 +162,20 @@ if not df.empty:
 
     if 'country' in df.columns:
         # 4. "参赛公司 Top 10 国家分布" 柱状图
-        country_counts = df['country'].dropna().value_counts().reset_index()  # Dropna
+        country_counts = df['country'].dropna().value_counts().reset_index()
         country_counts.columns = ['国家', '数量']
         if not country_counts.empty and '国家' in country_counts.columns and '数量' in country_counts.columns:
-            fig_country_bar = px.bar(country_counts.head(10), x='国家', y='数量', title="参赛公司 Top 10 国家分布",
-                                      color='数量', color_continuous_scale=px.colors.sequential.Viridis)
-            fig_country_bar.update_layout(xaxis_title=None, yaxis_title=None)
-           
+            fig_country_bar = go.Figure(data=[go.Bar(
+                x=country_counts.head(10)['国家'],
+                y=country_counts.head(10)['数量'],
+                marker_color=country_counts.head(10)['数量'], # Color by count
+                marker_colorscale=px.colors.sequential.Viridis # Use px's color scale
+            )])
+            fig_country_bar.update_layout(title_text="参赛公司 Top 10 国家分布", xaxis_title=None, yaxis_title=None)
             st.plotly_chart(fig_country_bar, use_container_width=True)
         else:
             st.info("没有可用的国家数据进行分析。")
+
 
         st.subheader("重点国家分析：美国、英国、德国、法国、意大利的数量与渠道")
         key_countries = ['United States', 'United Kingdom', 'Germany', 'France', 'Italy']
@@ -147,25 +187,22 @@ if not df.empty:
         st.write("---")
         st.markdown("##### 重点国家报名数量:")
         
-        # 替换“0”为“无”，并设置列居中
         key_country_summary = key_country_df.groupby('country').agg(
             报名数量=('country', 'count'),
             最主要渠道=('渠道', lambda x: x.value_counts().idxmax() if not x.empty else '无')
         ).reset_index().rename(columns={'country': '国家'})
         
-        # 替换 0 为 “无”
         key_country_summary['报名数量'] = key_country_summary['报名数量'].replace(0, '无')
         
-        # 设置表格显示格式：所有列居中
-        def center_all_cols(df):
-            return df.style.set_properties(**{
+        def center_all_cols(df_style): # Accept df.style object
+            return df_style.set_properties(**{
                 'text-align': 'center'
             }).set_table_styles([{
                 'selector': 'th',
                 'props': [('text-align', 'center')]
             }])
         
-        st.dataframe(center_all_cols(key_country_summary.set_index('国家')))
+        st.dataframe(center_all_cols(key_country_summary.set_index('国家').style))
         
         st.write("---")
         # Display channel distribution for each key country
@@ -206,29 +243,39 @@ if not df.empty:
     with col1:
         industry_col = 'Which of the following industries best describes your company?'
         if industry_col in df.columns:
-            industry_counts = df[industry_col].dropna().value_counts().reset_index()  # Dropna
+            industry_counts = df[industry_col].dropna().value_counts().reset_index()
             industry_counts.columns = ['行业', '数量']
             if not industry_counts.empty:
-                fig_industry = px.bar(industry_counts.head(10), x='数量', y='行业', orientation='h', title="Top 10 行业分布")
-                fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None)
-                # 添加参考线：计算前10行业数量的平均值
-                avg_value_industry = industry_counts.head(10)['数量'].mean()
-                fig_industry.add_shape(
-                    type="line",
-                    x0=avg_value_industry,
-                    x1=avg_value_industry,
-                    y0=-0.5,
-                    y1=9.5,
-                    line=dict(color="red", dash="dash")
-                )
-                fig_industry.add_annotation(
-                    x=avg_value_industry,
-                    y=9.5,
-                    text=f"平均值: {avg_value_industry:.1f}",
-                    showarrow=False,
-                    font=dict(color="red"),
-                    xanchor="left"
-                )
+                fig_industry = go.Figure(data=[go.Bar(
+                    x=industry_counts['数量'],
+                    y=industry_counts['行业'],
+                    orientation='h',
+                    marker_color=industry_counts['数量']
+                )])
+                fig_industry.update_layout(yaxis={'categoryorder':'total ascending'}, xaxis_title=None, yaxis_title=None, title_text="Top 10 行业分布")
+                
+                # Add average line and annotation for top 10 industries
+                if len(industry_counts) > 0:
+                    top_10_industry_counts = industry_counts.head(10)
+                    avg_value_industry = top_10_industry_counts['数量'].mean()
+                    
+                    fig_industry.add_shape(
+                        type="line",
+                        x0=avg_value_industry,
+                        x1=avg_value_industry,
+                        y0=-0.5, # Adjusted for horizontal bar chart (y-axis for categories)
+                        y1=min(9.5, len(top_10_industry_counts) - 0.5), # Ensure y1 doesn't exceed bounds
+                        line=dict(color="red", dash="dash")
+                    )
+                    fig_industry.add_annotation(
+                        x=avg_value_industry,
+                        y=min(9.5, len(top_10_industry_counts) - 0.5),
+                        text=f"平均值: {avg_value_industry:.1f}",
+                        showarrow=False,
+                        font=dict(color="red"),
+                        xanchor="left",
+                        yshift=10
+                    )
                 st.plotly_chart(fig_industry, use_container_width=True)
             else:
                 st.info(f"缺少字段：'{industry_col}' 的数据。")
@@ -236,30 +283,37 @@ if not df.empty:
             st.warning(f"缺少字段：'{industry_col}'，无法显示行业分析。")
 
     with col2:
-        stage_col = 'What stage is your company currently in?'
-        if stage_col in df.columns:
-            stage_counts = df[stage_col].dropna().value_counts().reset_index()  # Dropna
-            stage_counts.columns = ['发展阶段', '数量']
-            if not stage_counts.empty:
-                fig_stage = px.bar(stage_counts, x='发展阶段', y='数量', title="公司发展阶段分布")
-                fig_stage.update_layout(xaxis_title=None, yaxis_title=None)
-                st.plotly_chart(fig_stage, use_container_width=True)
+        # Note: This was 'What stage is your company currently in?' originally, now renamed to '公司发展阶段' globally
+        if '公司发展阶段' in df.columns:
+            stage_counts_bar = df['公司发展阶段'].dropna().value_counts().reset_index()
+            stage_counts_bar.columns = ['发展阶段', '数量']
+            if not stage_counts_bar.empty:
+                fig_stage_bar = go.Figure(data=[go.Bar(
+                    x=stage_counts_bar['发展阶段'],
+                    y=stage_counts_bar['数量'],
+                    marker_color=stage_counts_bar['数量']
+                )])
+                fig_stage_bar.update_layout(title_text="公司发展阶段分布", xaxis_title=None, yaxis_title=None)
+                st.plotly_chart(fig_stage_bar, use_container_width=True)
             else:
-                st.info(f"缺少字段：'{stage_col}' 的数据。")
+                st.info("没有发展阶段数据，无法生成图表。")
         else:
-            st.warning(f"缺少字段：'{stage_col}'，无法显示发展阶段分析。")
+            st.warning("缺少字段：'公司发展阶段'，无法显示发展阶段分析。")
 
     st.markdown("---")
 
     # ----------------------------
-    # 5. 公司类型与行业分析
+    # 5. 公司类型与产品、发展阶段、营收、团队规模分析
+    # (Arranged into two columns per row)
     # ----------------------------
-    st.header("💼 公司类型与产品类型分析")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        company_type_col = 'My company is a:'
+    st.header("💼 公司运营状况分析") # More general header
+
+    # Row 1: Company Type and Product Type
+    col1_row1, col2_row1 = st.columns(2)
+
+    with col1_row1:
+        st.subheader("公司类型分布") # More specific subheader
+        company_type_col = '公司类型' # Using the globally renamed column
         if company_type_col in df.columns:
             company_type_counts = df[company_type_col].dropna().value_counts().reset_index()
             company_type_counts.columns = ['公司类型', '数量']
@@ -276,64 +330,107 @@ if not df.empty:
                 st.info(f"字段 '{company_type_col}' 没有有效数据。")
         else:
             st.warning(f"缺少字段：'{company_type_col}'，无法显示公司类型分析。")
+
+    with col2_row1:
+        st.subheader("产品类型统计") # More specific subheader
+        product_types_cols = {
+            'Physical Product': 'Physical Products - Tangible goods that can be sold/distributed online',
+            'Digital Product': 'Digital Products - Software, apps, or digital solutions',
+            'Hardware + Software': 'Hardware + Software - Physical devices with digital components',
+            'Digital Service': 'Digital Services - Online platforms, marketplaces, or service delivery',
+            'Professional Service': 'Professional Services - Consulting, advisory, or traditional services'
+        }
         
-        df = df.rename(columns={
-        'What stage is your company currently in?': '公司发展阶段',
-        "What is your company's current annual revenue?": '公司营收',
-        'How many employees/contractors are currently working at your company?': '团队规模'
-        })
+        product_data = {}
+        for display_name, original_col_name in product_types_cols.items():
+            if original_col_name in df.columns:
+                # Robustly count 'Yes' values (case-insensitive) after dropping NA
+                product_data[display_name] = df[original_col_name].dropna().astype(str).str.lower().eq('yes').sum()
         
-        # ----------------------------
-        # 🎯 公司发展阶段分析
-        # ----------------------------
+        if product_data:
+            product_df = pd.DataFrame(list(product_data.items()), columns=['产品类型', '数量'])
+            # Filter out types with 0 count for cleaner charts
+            product_df = product_df[product_df['数量'] > 0]
+            if not product_df.empty:
+                fig_product_type = go.Figure(data=[go.Bar(
+                    x=product_df['数量'],
+                    y=product_df['产品类型'],
+                    orientation='h',
+                    marker_color=product_df['数量']
+                )])
+                fig_product_type.update_layout(yaxis={'categoryorder':'total ascending'}, title_text="产品类型统计", xaxis_title="数量", yaxis_title="产品类型")
+                st.plotly_chart(fig_product_type, use_container_width=True)
+            else:
+                st.info("没有可用的产品类型数据。")
+        else:
+            st.warning("缺少产品类型相关字段，无法显示产品类型分析。")
+
+    st.markdown("---") # Separator between chart rows
+
+    # Row 2: Development Stage and Revenue
+    col1_row2, col2_row2 = st.columns(2)
+
+    with col1_row2:
         st.subheader("📈 发展阶段分析：企业当前所处的发展阶段")
         if '公司发展阶段' in df.columns:
-            stage_counts = df['公司发展阶段'].dropna().value_counts().reset_index()
-            stage_counts.columns = ['发展阶段', '数量']
-            if not stage_counts.empty:
-                fig_stage = px.pie(stage_counts, names='发展阶段', values='数量',
-                                   title="企业发展阶段分布", hole=0.3, textinfo='percent+label')
-                st.plotly_chart(fig_stage, use_container_width=True)
+            stage_counts_pie = df['公司发展阶段'].dropna().value_counts().reset_index()
+            stage_counts_pie.columns = ['发展阶段', '数量']
+            if not stage_counts_pie.empty:
+                fig_stage_pie = go.Figure(data=[go.Pie(
+                    labels=stage_counts_pie['发展阶段'],
+                    values=stage_counts_pie['数量'],
+                    textinfo='percent+label',
+                    hole=0.3
+                )])
+                fig_stage_pie.update_layout(title_text="企业发展阶段分布")
+                st.plotly_chart(fig_stage_pie, use_container_width=True)
             else:
                 st.info("无发展阶段数据，无法生成图表。")
         else:
             st.warning("缺少字段：'公司发展阶段'。")
-        
-        # ----------------------------
-        # 💰 营收状况分析
-        # ----------------------------
+
+    with col2_row2:
         st.subheader("💰 营收状况分析：企业年度营收情况分布")
         if '公司营收' in df.columns:
             revenue_counts = df['公司营收'].dropna().value_counts().reset_index()
             revenue_counts.columns = ['营收区间', '数量']
             if not revenue_counts.empty:
-                fig_revenue = px.bar(revenue_counts, x='营收区间', y='数量', title="企业年度营收分布",
-                                     text='数量', color='营收区间')
-                fig_revenue.update_layout(xaxis_title="营收区间", yaxis_title="数量")
+                fig_revenue = go.Figure(data=[go.Bar(
+                    x=revenue_counts['营收区间'],
+                    y=revenue_counts['数量'],
+                    text=[str(x) for x in revenue_counts['数量']], # Convert numbers to strings for text
+                    textposition='auto', # Show text labels automatically
+                    marker_color=revenue_counts['数量'] # Color based on count
+                )])
+                fig_revenue.update_layout(xaxis_title="营收区间", yaxis_title="数量", title_text="企业年度营收分布")
                 st.plotly_chart(fig_revenue, use_container_width=True)
             else:
                 st.info("无营收数据，无法生成图表。")
         else:
             st.warning("缺少字段：'公司营收'。")
-        
-        # ----------------------------
-        # 👥 团队规模分析
-        # ----------------------------
-        st.subheader("👥 团队规模分析：企业团队规模分布情况")
-        if '团队规模' in df.columns:
-            team_counts = df['团队规模'].dropna().value_counts().reset_index()
-            team_counts.columns = ['团队规模', '数量']
-            if not team_counts.empty:
-                fig_team = px.pie(team_counts, names='团队规模', values='数量',
-                                  title="企业团队规模分布", hole=0.3, textinfo='percent+label')
-                st.plotly_chart(fig_team, use_container_width=True)
-            else:
-                st.info("无团队规模数据，无法生成图表。")
+            
+    st.markdown("---") # Separator between chart rows
+
+    # Row 3: Team Size
+    st.subheader("👥 团队规模分析：企业团队规模分布情况")
+    if '团队规模' in df.columns:
+        team_counts = df['团队规模'].dropna().value_counts().reset_index()
+        team_counts.columns = ['团队规模', '数量']
+        if not team_counts.empty:
+            fig_team = go.Figure(data=[go.Pie(
+                labels=team_counts['团队规模'],
+                values=team_counts['数量'],
+                textinfo='percent+label',
+                hole=0.3
+            )])
+            fig_team.update_layout(title_text="企业团队规模分布")
+            st.plotly_chart(fig_team, use_container_width=True)
         else:
-            st.warning("缺少字段：'团队规模'。")
-            
-            
-            st.markdown("---")
+            st.info("无团队规模数据，无法生成图表。")
+    else:
+        st.warning("缺少字段：'团队规模'。")
+        
+    st.markdown("---")
 
     # ----------------------------
     # 6. 平台账号与用户反馈
