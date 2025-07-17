@@ -424,20 +424,6 @@ if not df.empty:
                 st.info(f"字段 '{event_preference_col}' 没有 Las Vegas 或 London 的有效数据。")
         else:
             st.warning(f"缺少字段：'{event_preference_col}'，无法显示决赛地点偏好分析。")
-
-    # The existing feedback content section remains below the two new pie charts
-    feedback_content_col = 'Do you have any feedback for Alibaba.com?'
-    if feedback_content_col in df.columns:
-        st.subheader("部分用户反馈内容")
-        sample_feedback_df = df[feedback_content_col].dropna()
-        if not sample_feedback_df.empty:
-            samples = sample_feedback_df.sample(min(5, len(sample_feedback_df))).tolist()
-            for i, fb in enumerate(samples):
-                st.write(f"- {fb}")
-        else:
-            st.info("暂无用户反馈内容。")
-    else:
-        st.warning(f"缺少字段：'{feedback_content_col}'，无法显示用户反馈内容。")
     
     st.markdown("---")
 
