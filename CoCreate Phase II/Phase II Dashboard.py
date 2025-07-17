@@ -16,8 +16,8 @@ try:
 except AttributeError:
     pass
 else:
-    ssl._create_default_https_context = _create_default_https_context
-
+    ssl._create_default_https_context = _create_unverified_https_context
+    
 # Ensure NLTK stopwords are downloaded
 try:
     nltk.data.find('corpora/stopwords')
