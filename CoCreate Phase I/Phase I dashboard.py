@@ -7,7 +7,7 @@ import plotly.express as px
 def load_data():
     df = pd.read_csv("CoCreate Phase I/Update-PitchData-Phase1.csv")
     df = df.rename(columns={
-        'Country where {{field:4b95525c-36f9-47c2-b2e9-50b3e64a92cb}} is based:': 'Country',
+        'Country where is based:': 'Country',
         '渠道分类': 'Channel',
         'SOURCE': 'Source',
         'Response Type': 'ResponseType',
