@@ -252,7 +252,7 @@ if not df.empty:
     st.markdown("---")
 
     # ----------------------------
-    # 5. 公司类型与产品分析
+    # 5. 公司类型与行业分析
     # ----------------------------
     st.header("💼 公司类型与产品类型分析")
     
@@ -276,46 +276,64 @@ if not df.empty:
                 st.info(f"字段 '{company_type_col}' 没有有效数据。")
         else:
             st.warning(f"缺少字段：'{company_type_col}'，无法显示公司类型分析。")
-    
-    with col2:
-        st.subheader("产品类型统计")
-        product_types_cols = {
-            'Physical Product': 'Physical Products - Tangible goods that can be sold/distributed online',
-            'Digital Product': 'Digital Products - Software, apps, or digital solutions',
-            'Hardware + Software': 'Hardware + Software - Physical devices with digital components',
-            'Digital Service': 'Digital Services - Online platforms, marketplaces, or service delivery',
-            'Professional Service': 'Professional Services - Consulting, advisory, or traditional services'
-        }
-    
-        product_data = {}
-        for display_name, original_col_name in product_types_cols.items():
-            if original_col_name in df.columns:
-                product_data[display_name] = df[original_col_name].dropna().apply(
-                    lambda x: str(x).lower() == 'yes' or x is True
-                ).sum()
-    
-        if product_data:
-            product_df = pd.DataFrame(list(product_data.items()), columns=['产品类型', '数量'])
-            if not product_df.empty:
-                fig_product_type = px.bar(
-                    product_df,
-                    x='数量',
-                    y='产品类型',
-                    orientation='h',
-                    title="产品类型统计"
-                )
-                fig_product_type.update_layout(
-                    yaxis={'categoryorder': 'total ascending'},
-                    xaxis_title=None,
-                    yaxis_title=None
-                )
-                st.plotly_chart(fig_product_type, use_container_width=True)
+        
+        df = df.rename(columns={
+        'What stage is your company currently in?': '公司发展阶段',
+        "What is your company's current annual revenue?": '公司营收',
+        'How many employees/contractors are currently working at your company?': '团队规模'
+        })
+        
+        # ----------------------------
+        # 🎯 公司发展阶段分析
+        # ----------------------------
+        st.subheader("📈 发展阶段分析：企业当前所处的发展阶段")
+        if '公司发展阶段' in df.columns:
+            stage_counts = df['公司发展阶段'].dropna().value_counts().reset_index()
+            stage_counts.columns = ['发展阶段', '数量']
+            if not stage_counts.empty:
+                fig_stage = px.pie(stage_counts, names='发展阶段', values='数量',
+                                   title="企业发展阶段分布", hole=0.3, textinfo='percent+label')
+                st.plotly_chart(fig_stage, use_container_width=True)
             else:
-                st.info("没有可用的产品类型数据。")
+                st.info("无发展阶段数据，无法生成图表。")
         else:
-            st.warning("缺少产品类型相关字段，无法显示产品类型分析。")
-    
-    st.markdown("---")
+            st.warning("缺少字段：'公司发展阶段'。")
+        
+        # ----------------------------
+        # 💰 营收状况分析
+        # ----------------------------
+        st.subheader("💰 营收状况分析：企业年度营收情况分布")
+        if '公司营收' in df.columns:
+            revenue_counts = df['公司营收'].dropna().value_counts().reset_index()
+            revenue_counts.columns = ['营收区间', '数量']
+            if not revenue_counts.empty:
+                fig_revenue = px.bar(revenue_counts, x='营收区间', y='数量', title="企业年度营收分布",
+                                     text='数量', color='营收区间')
+                fig_revenue.update_layout(xaxis_title="营收区间", yaxis_title="数量")
+                st.plotly_chart(fig_revenue, use_container_width=True)
+            else:
+                st.info("无营收数据，无法生成图表。")
+        else:
+            st.warning("缺少字段：'公司营收'。")
+        
+        # ----------------------------
+        # 👥 团队规模分析
+        # ----------------------------
+        st.subheader("👥 团队规模分析：企业团队规模分布情况")
+        if '团队规模' in df.columns:
+            team_counts = df['团队规模'].dropna().value_counts().reset_index()
+            team_counts.columns = ['团队规模', '数量']
+            if not team_counts.empty:
+                fig_team = px.pie(team_counts, names='团队规模', values='数量',
+                                  title="企业团队规模分布", hole=0.3, textinfo='percent+label')
+                st.plotly_chart(fig_team, use_container_width=True)
+            else:
+                st.info("无团队规模数据，无法生成图表。")
+        else:
+            st.warning("缺少字段：'团队规模'。")
+            
+            
+            st.markdown("---")
 
     # ----------------------------
     # 6. 平台账号与用户反馈
