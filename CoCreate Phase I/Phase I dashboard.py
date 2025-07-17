@@ -77,5 +77,32 @@ with st.expander("点击展开查看完整项目数据表"):
     st.dataframe(filtered_df[['First Name', 'Last Name', 'Company', 'Country', 'Channel', 'Source', 'ResponseType']], use_container_width=True)
 
 # 底部
-st.markdown("---")
-st.markdown("© 2025 Alibaba.com COCREATE Pitch Phase I Dashboard")
+st.markdown("---") # 保留分隔线，保持与上方内容的视觉分离
+
+st.markdown("""
+<style>
+.footer-text {
+    text-align: center;
+    color: #888;
+    font-size: 0.9em;
+    padding-top: 20px;
+    padding-bottom: 10px;
+}
+.footer-link {
+    color: #4CAF50 !important; /* Adjust link color if needed */
+    text-decoration: none;
+}
+.footer-link:hover {
+    text-decoration: underline;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="footer-text">
+    © 2025 Alibaba.com COCREATE Pitch Phase II 数据看板<br>
+    COCREATE Pitch Phase II 在线看板: <a href="https://alibaba-cocreate-datadashboard-phase2.streamlit.app/" class="footer-link" target="_blank">点击访问</a><br>
+    贡献者: leahjiang @github Yunfang JIANG<br>
+    最后更新: {pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")}
+</div>
+""", unsafe_allow_html=True)
