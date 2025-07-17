@@ -485,3 +485,35 @@ if not df.empty:
 
 else:
     st.info("数据加载失败，请检查文件路径与文件名是否正确，例如：`CoCreate Phase II/Update-PitchData-Phase2.csv`。")
+
+
+# 底部
+st.markdown("---") # 保留分隔线，保持与上方内容的视觉分离
+
+st.markdown("""
+<style>
+.footer-text {
+    text-align: center;
+    color: #888;
+    font-size: 0.9em;
+    padding-top: 20px;
+    padding-bottom: 10px;
+}
+.footer-link {
+    color: #4CAF50 !important; /* Adjust link color if needed */
+    text-decoration: none;
+}
+.footer-link:hover {
+    text-decoration: underline;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="footer-text">
+    © 2025 Alibaba.com COCREATE Pitch Phase II 数据看板<br>
+    COCREATE Pitch Phase I 在线看板: <a href="https://alibaba-cocreate-datadashboard-phase1.streamlit.app/" class="footer-link" target="_blank">点击访问</a><br>
+    贡献者: leahjiang @github Yunfang JIANG<br>
+    最后更新: {pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")}
+</div>
+""", unsafe_allow_html=True)
