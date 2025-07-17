@@ -69,7 +69,7 @@ if not df.empty:
         "What is your company's current annual revenue?": '公司营收',
         'How many employees/contractors are currently working at your company?': '团队规模',
         'My company is a:': '公司类型',
-        'If you are selected as a finalist, which event would you like to attend and compete in? Please note that athletes are advised to choose the London Athlete-exclusive Event. Alibaba.com does not guarantee that it can honor the applicant’s preference.': '决赛地点偏好'
+        'If selected as a finalist, which event would you prefer to attend and compete in?': '决赛地点偏好'
     })
 
 
